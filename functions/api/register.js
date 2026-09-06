@@ -20,7 +20,7 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, domain } = body;
 
     if (!username || !password) {
       return new Response(JSON.stringify({ code: 400, message: '用户名和密码不能为空' }), { status: 400, headers });
@@ -30,7 +30,9 @@ export async function onRequestPost(context) {
     }
 
     const API_BASE = env.API_BASE || 'https://www.mailfufu1.qzz.io';
-    const MAIL_DOMAIN = env.MAIL_DOMAIN || 'mailfufu1.qzz.io';
+    // 允许的域名列表
+    const ALLOWED_DOMAINS = (env.ALLOWED_DOMAINS || 'mailfufu1.qzz.io,mailfufu.dpdns.org,gorebox.dpdns.org').split(',').map(s => s.trim());
+    const MAIL_DOMAIN = (domain && ALLOWED_DOMAINS.includes(domain)) ? domain : ALLOWED_DOMAINS[0];
     const ADMIN_EMAIL = env.ADMIN_EMAIL;
     const ADMIN_PASSWORD = env.ADMIN_PASSWORD;
 

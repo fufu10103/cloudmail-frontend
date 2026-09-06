@@ -7,6 +7,7 @@ import { CONFIG } from '@/lib/config';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
+  const [domain, setDomain] = useState(CONFIG.MAIL_DOMAINS[0]);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, domain, password })
       });
       const data = await res.json();
 
@@ -84,11 +85,20 @@ export default function RegisterPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="flex-1 outline-none bg-transparent text-gray-800"
-                  placeholder="输入你想要的账号名"
+                  placeholder="输入账号名"
                   required
                   autoComplete="username"
                 />
-                <span className="text-gray-400 text-sm whitespace-nowrap">@{CONFIG.MAIL_DOMAIN}</span>
+                <span className="text-gray-400 text-sm mx-1">@</span>
+                <select
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  className="outline-none bg-transparent text-gray-700 text-sm cursor-pointer"
+                >
+                  {CONFIG.MAIL_DOMAINS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
