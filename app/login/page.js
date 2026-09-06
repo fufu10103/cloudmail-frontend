@@ -5,14 +5,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CONFIG } from '@/lib/config';
 import { login } from '@/lib/auth';
+import { getSettings } from '@/lib/settings';
 
 export default function LoginPage() {
+  const settings = getSettings();
   const [username, setUsername] = useState('');
+  const [domain, setDomain] = useState(settings.mailDomains[0] || CONFIG.MAIL_DOMAIN);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+
+  const mailDomains = settings.mailDomains || CONFIG.MAIL_DOMAINS;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +29,7 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    const email = username.includes('@') ? username : `${username}@${CONFIG.MAIL_DOMAIN}`;
+    const email = username.includes('@') ? username : `${username}@${domain}`;
     const result = await login(email, password);
     setLoading(false);
 
@@ -79,18 +84,26 @@ export default function LoginPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-11 pr-24 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white/50"
-                  placeholder="输入账号名"
-                  required
-                  autoComplete="username"
-                />
-                <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 text-sm">
-                  @{CONFIG.MAIL_DOMAIN}
-                </span>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="flex-1 pl-11 pr-2 py-3 border border-gray-200 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white/50"
+                    placeholder="输入账号名"
+                    required
+                    autoComplete="username"
+                  />
+                  <select
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    className="py-3 pr-3 pl-2 border border-l-0 border-gray-200 rounded-r-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white/50 text-gray-600 text-sm cursor-pointer max-w-[140px]"
+                  >
+                    {mailDomains.map((d) => (
+                      <option key={d} value={d}>@{d}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
