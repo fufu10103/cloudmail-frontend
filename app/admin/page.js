@@ -4,15 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CONFIG, API_ENDPOINTS } from '@/lib/config';
-import { isLoggedIn, getCurrentUser, logout, authFetch } from '@/lib/auth';
+import { isLoggedIn, getCurrentUser, logout, authFetch, isAdmin } from '@/lib/auth';
 
 export default function AdminPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [users, setUsers] = useState([]);
-  const [stats, setStats] = useState({ totalUsers: 0, totalMails: 0, storageUsed: 0 });
+  const [stats, setStats] = useState({ total: 0 });
   const [loading, setLoading] = useState(true);
-  const [newUser, setNewUser] = useState({ username: '', password: '' });
+  const [newUser, setNewUser] = useState({ email: '', password: '' });
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -26,18 +26,11 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 获取统计数据
-      const statsRes = await authFetch(`${CONFIG.API_BASE}/api/admin/stats`);
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData.stats || statsData);
-      }
-
-      // 获取用户列表
-      const usersRes = await authFetch(`${CONFIG.API_BASE}/api/admin/users`);
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsers(usersData.users || usersData.list || []);
+      const res = await authFetch(`${API_ENDPOINTS.ADMIN_USER_LIST}?num=1&size=50`);
+      const data = await res.json();
+      if (data.code === 200) {
+        setUsers(data.data?.list || []);
+        setStats({ total: data.data?.total || 0 });
       }
     } catch (err) {
       console.error('获取管理数据失败:', err);
@@ -49,24 +42,26 @@ export default function AdminPage() {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setMessage('');
-    if (!newUser.username || !newUser.password) {
-      setMessage('请填写用户名和密码');
+    if (!newUser.email || !newUser.password) {
+      setMessage('请填写邮箱和密码');
+      return;
+    }
+    if (newUser.password.length < 6) {
+      setMessage('密码至少6位');
       return;
     }
     try {
-      const res = await authFetch(`${CONFIG.API_BASE}/api/admin/users`, {
+      const email = newUser.email.includes('@') ? newUser.email : `${newUser.email}@${CONFIG.MAIL_DOMAIN}`;
+      const res = await authFetch(API_ENDPOINTS.ADMIN_USER_ADD, {
         method: 'POST',
-        body: JSON.stringify({
-          email: `${newUser.username}@${CONFIG.MAIL_DOMAIN}`,
-          password: newUser.password
-        })
+        body: JSON.stringify({ email, password: newUser.password })
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (data.code === 200) {
         setMessage('用户创建成功');
-        setNewUser({ username: '', password: '' });
+        setNewUser({ email: '', password: '' });
         fetchData();
       } else {
-        const data = await res.json();
         setMessage(data.message || '创建失败');
       }
     } catch (err) {
@@ -74,10 +69,26 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!confirm('确定要删除这个用户吗？此操作不可恢复。')) return;
+  const handleToggleStatus = async (user) => {
+    const newStatus = user.status === 0 ? 1 : 0;
     try {
-      await authFetch(`${CONFIG.API_BASE}/api/admin/users/${userId}`, { method: 'DELETE' });
+      const res = await authFetch(API_ENDPOINTS.ADMIN_USER_SET_STATUS, {
+        method: 'PUT',
+        body: JSON.stringify({ userId: user.userId, status: newStatus })
+      });
+      const data = await res.json();
+      if (data.code === 200) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error('修改状态失败:', err);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!confirm('确定要永久删除这个用户吗？此操作不可恢复！')) return;
+    try {
+      await authFetch(`${API_ENDPOINTS.ADMIN_USER_DELETE}?userIds=${userId}`, { method: 'DELETE' });
       fetchData();
     } catch (err) {
       console.error('删除用户失败:', err);
@@ -91,22 +102,21 @@ export default function AdminPage() {
 
   const tabs = [
     { id: 'dashboard', name: '概览', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
-    { id: 'users', name: '用户管理', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-    { id: 'settings', name: '系统设置', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' }
+    { id: 'users', name: '用户管理', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' }
   ];
 
   const statCards = [
-    { label: '总用户数', value: stats.totalUsers || users.length || 0, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'blue' },
-    { label: '邮件总数', value: stats.totalMails || 0, icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', color: 'green' },
-    { label: '存储使用', value: stats.storageUsed ? `${(stats.storageUsed / 1024 / 1024).toFixed(1)} MB` : '0 MB', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4', color: 'purple' },
-    { label: '今日注册', value: stats.todayRegistrations || 0, icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z', color: 'orange' }
+    { label: '总用户数', value: stats.total || users.length || 0, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'blue' },
+    { label: '正常用户', value: users.filter(u => u.status === 0 && u.isDel === 0).length, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'green' },
+    { label: '已禁用', value: users.filter(u => u.status === 1).length, icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', color: 'red' },
+    { label: '管理员', value: users.filter(u => u.type === 0).length, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: 'purple' }
   ];
 
   const colorMap = {
     blue: 'bg-blue-50 text-blue-600',
     green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-orange-50 text-orange-600'
+    red: 'bg-red-50 text-red-600',
+    purple: 'bg-purple-50 text-purple-600'
   };
 
   return (
@@ -193,7 +203,7 @@ export default function AdminPage() {
                 </div>
 
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">最近注册用户</h2>
+                  <h2 className="text-lg font-semibold text-gray-800 mb-4">用户列表</h2>
                   {users.length === 0 ? (
                     <p className="text-gray-400 text-sm">暂无用户数据</p>
                   ) : (
@@ -202,22 +212,30 @@ export default function AdminPage() {
                         <thead>
                           <tr className="border-b border-gray-200 text-left text-gray-500">
                             <th className="pb-3 font-medium">邮箱地址</th>
+                            <th className="pb-3 font-medium">角色</th>
                             <th className="pb-3 font-medium">状态</th>
                             <th className="pb-3 font-medium">注册时间</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {users.slice(0, 5).map((user, idx) => (
-                            <tr key={user.id || idx}>
-                              <td className="py-3 text-gray-800">{user.email || user.username}</td>
+                          {users.slice(0, 5).map((user) => (
+                            <tr key={user.userId}>
+                              <td className="py-3 text-gray-800">{user.email}</td>
                               <td className="py-3">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  user.active === false ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'
+                                  user.type === 0 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
                                 }`}>
-                                  {user.active === false ? '已禁用' : '正常'}
+                                  {user.type === 0 ? '管理员' : '普通用户'}
                                 </span>
                               </td>
-                              <td className="py-3 text-gray-500">{user.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : '-'}</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  user.status === 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {user.status === 0 ? '正常' : '已禁用'}
+                                </span>
+                              </td>
+                              <td className="py-3 text-gray-500">{user.createTime ? user.createTime.split(' ')[0] : '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -235,38 +253,38 @@ export default function AdminPage() {
 
                 {/* 创建用户 */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">创建新用户</h2>
+                  <h2 className="text-lg font-semibold text-gray-800 mb-4">添加用户</h2>
                   {message && (
                     <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes('成功') ? 'bg-green-50 border border-green-200 text-green-600' : 'bg-red-50 border border-red-200 text-red-600'}`}>
                       {message}
                     </div>
                   )}
-                  <form onSubmit={handleCreateUser} className="flex gap-4 items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">用户名</label>
+                  <form onSubmit={handleCreateUser} className="flex gap-4 items-end flex-wrap">
+                    <div className="flex-1 min-w-48">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">邮箱</label>
                       <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-primary-500">
                         <input
                           type="text"
-                          value={newUser.username}
-                          onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                          value={newUser.email}
+                          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                           className="flex-1 outline-none"
                           placeholder="输入用户名"
                         />
                         <span className="text-gray-400 text-sm">@{CONFIG.MAIL_DOMAIN}</span>
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">初始密码</label>
+                    <div className="flex-1 min-w-48">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">密码</label>
                       <input
                         type="text"
                         value={newUser.password}
                         onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                        placeholder="设置初始密码"
+                        placeholder="至少6位"
                       />
                     </div>
                     <button type="submit" className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition">
-                      创建用户
+                      添加用户
                     </button>
                   </form>
                 </div>
@@ -278,9 +296,6 @@ export default function AdminPage() {
                   </div>
                   {users.length === 0 ? (
                     <div className="p-12 text-center text-gray-400">
-                      <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
                       <p>暂无用户</p>
                     </div>
                   ) : (
@@ -289,43 +304,54 @@ export default function AdminPage() {
                         <thead className="bg-gray-50">
                           <tr className="text-left text-gray-500">
                             <th className="px-6 py-3 font-medium">邮箱地址</th>
+                            <th className="px-6 py-3 font-medium">角色</th>
                             <th className="px-6 py-3 font-medium">状态</th>
-                            <th className="px-6 py-3 font-medium">存储空间</th>
+                            <th className="px-6 py-3 font-medium">发件数</th>
                             <th className="px-6 py-3 font-medium">注册时间</th>
                             <th className="px-6 py-3 font-medium text-right">操作</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {users.map((user, idx) => (
-                            <tr key={user.id || idx} className="hover:bg-gray-50">
+                          {users.map((user) => (
+                            <tr key={user.userId} className="hover:bg-gray-50">
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                                    {(user.email || user.username || '?').charAt(0).toUpperCase()}
+                                    {user.email?.charAt(0).toUpperCase()}
                                   </div>
-                                  <span className="font-medium text-gray-800">{user.email || user.username}</span>
+                                  <span className="font-medium text-gray-800">{user.email}</span>
                                 </div>
                               </td>
                               <td className="px-6 py-4">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  user.active === false ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'
+                                  user.type === 0 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
                                 }`}>
-                                  {user.active === false ? '已禁用' : '正常'}
+                                  {user.type === 0 ? '管理员' : '普通用户'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-gray-500">
-                                {user.storage_used ? `${(user.storage_used / 1024 / 1024).toFixed(1)} MB` : '-'}
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  user.status === 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {user.status === 0 ? '正常' : '已禁用'}
+                                </span>
                               </td>
-                              <td className="px-6 py-4 text-gray-500">
-                                {user.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : '-'}
-                              </td>
+                              <td className="px-6 py-4 text-gray-500">{user.sendCount || 0}</td>
+                              <td className="px-6 py-4 text-gray-500">{user.createTime ? user.createTime.split(' ')[0] : '-'}</td>
                               <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <button className="px-3 py-1 text-xs border border-gray-300 rounded text-gray-600 hover:bg-gray-50 transition">
-                                    编辑
+                                  <button
+                                    onClick={() => handleToggleStatus(user)}
+                                    className={`px-3 py-1 text-xs border rounded transition ${
+                                      user.status === 0
+                                        ? 'border-yellow-300 text-yellow-600 hover:bg-yellow-50'
+                                        : 'border-green-300 text-green-600 hover:bg-green-50'
+                                    }`}
+                                  >
+                                    {user.status === 0 ? '禁用' : '启用'}
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteUser(user.id)}
+                                    onClick={() => handleDeleteUser(user.userId)}
                                     className="px-3 py-1 text-xs border border-red-300 rounded text-red-600 hover:bg-red-50 transition"
                                   >
                                     删除
@@ -338,90 +364,6 @@ export default function AdminPage() {
                       </table>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* 系统设置页 */}
-            {activeTab === 'settings' && (
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">系统设置</h1>
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4">基本设置</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                          <div>
-                            <p className="font-medium text-gray-800">开放用户注册</p>
-                            <p className="text-sm text-gray-500">允许新用户通过注册页面创建账号</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" defaultChecked className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                          </label>
-                        </div>
-                        <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                          <div>
-                            <p className="font-medium text-gray-800">注册需要验证</p>
-                            <p className="text-sm text-gray-500">开启人机验证防止恶意注册</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" defaultChecked className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                          </label>
-                        </div>
-                        <div className="flex items-center justify-between py-3">
-                          <div>
-                            <p className="font-medium text-gray-800">单用户存储限额</p>
-                            <p className="text-sm text-gray-500">每个邮箱账号的最大存储空间</p>
-                          </div>
-                          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option>100 MB</option>
-                            <option>500 MB</option>
-                            <option selected>1 GB</option>
-                            <option>5 GB</option>
-                            <option>10 GB</option>
-                            <option>不限制</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4">邮件设置</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                          <div>
-                            <p className="font-medium text-gray-800">单封邮件大小限制</p>
-                            <p className="text-sm text-gray-500">包括附件在内的最大邮件体积</p>
-                          </div>
-                          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option>10 MB</option>
-                            <option selected>25 MB</option>
-                            <option>50 MB</option>
-                            <option>100 MB</option>
-                          </select>
-                        </div>
-                        <div className="flex items-center justify-between py-3">
-                          <div>
-                            <p className="font-medium text-gray-800">启用垃圾邮件过滤</p>
-                            <p className="text-sm text-gray-500">自动识别并拦截垃圾邮件</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" defaultChecked className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-200">
-                      <button className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition">
-                        保存设置
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
