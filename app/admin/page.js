@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CONFIG, API_ENDPOINTS } from '@/lib/config';
 import { isLoggedIn, getCurrentUser, logout, authFetch } from '@/lib/auth';
 import { getSettings, saveSettings, resetSettings, applySettings } from '@/lib/settings';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -159,27 +160,33 @@ export default function AdminPage() {
   ];
 
   const colorMap = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600',
-    purple: 'bg-purple-50 text-purple-600'
+    blue: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    green: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+    red: 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+    purple: 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* 侧边栏 */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm">
-        <div className="p-5 border-b border-gray-100">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex transition-colors duration-300">
+      {/* 移动端遮罩 */}
+      {/* 侧边栏 - 移动端固定抽屉 */}
+      <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-sm fixed md:relative h-full z-30 -translate-x-full md:translate-x-0 transition-transform duration-300" id="admin-sidebar">
+        <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <Link href="/mailbox" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <div>
-              <span className="font-bold text-gray-800 text-lg">管理后台</span>
-              <p className="text-xs text-gray-400">{settings.siteName}</p>
+            <div className="flex-1">
+              <span className="font-bold text-gray-800 dark:text-gray-100 text-lg">管理后台</span>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{settings.siteName}</p>
             </div>
+            <button onClick={() => document.getElementById('admin-sidebar')?.classList.add('-translate-x-full')} className="md:hidden p-1 text-gray-400">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </Link>
         </div>
 
@@ -187,11 +194,11 @@ export default function AdminPage() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); document.getElementById('admin-sidebar')?.classList.add('-translate-x-full'); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,9 +209,9 @@ export default function AdminPage() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
               {getCurrentUser()?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -224,7 +231,23 @@ export default function AdminPage() {
       </aside>
 
       {/* 主内容区 */}
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+        {/* 移动端顶栏 */}
+        <div className="flex items-center justify-between mb-4 md:hidden">
+          <button onClick={() => document.getElementById('admin-sidebar')?.classList.remove('-translate-x-full')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition">
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <span className="font-semibold text-gray-800 dark:text-gray-100">管理后台</span>
+          <ThemeToggle />
+        </div>
+
+        {/* 桌面端主题切换 */}
+        <div className="hidden md:flex justify-end mb-4">
+          <ThemeToggle />
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
@@ -234,10 +257,10 @@ export default function AdminPage() {
             {/* 概览页 */}
             {activeTab === 'dashboard' && (
               <div className="animate-fade-in">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">系统概览</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 md:mb-6">系统概览</h1>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-6 md:mb-8">
                   {statCards.map((card, idx) => (
-                    <div key={idx} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-hover">
+                    <div key={idx} className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 card-hover">
                       <div className="flex items-center justify-between mb-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorMap[card.color]}`}>
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,34 +268,34 @@ export default function AdminPage() {
                           </svg>
                         </div>
                       </div>
-                      <p className="text-3xl font-bold text-gray-800">{card.value}</p>
-                      <p className="text-sm text-gray-500 mt-1">{card.label}</p>
+                      <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{card.value}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{card.label}</p>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">最近用户</h2>
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">最近用户</h2>
                   {users.length === 0 ? (
-                    <p className="text-gray-400 text-sm py-8 text-center">暂无用户数据</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm py-8 text-center">暂无用户数据</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-gray-100 text-left text-gray-500">
+                          <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-gray-500 dark:text-gray-400">
                             <th className="pb-3 font-medium">邮箱地址</th>
                             <th className="pb-3 font-medium">角色</th>
                             <th className="pb-3 font-medium">状态</th>
                             <th className="pb-3 font-medium">注册时间</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                           {users.slice(0, 5).map((user) => (
-                            <tr key={user.userId} className="hover:bg-gray-50">
-                              <td className="py-3 text-gray-800 font-medium">{user.email}</td>
+                            <tr key={user.userId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td className="py-3 text-gray-800 dark:text-gray-100 font-medium">{user.email}</td>
                               <td className="py-3">
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                  user.type === 0 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                                  user.type === 0 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
                                 }`}>
                                   {user.type === 0 ? '管理员' : '普通用户'}
                                 </span>
