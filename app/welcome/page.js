@@ -217,7 +217,7 @@ export default function WelcomePage() {
             <span className="font-medium text-sm text-gray-600">{siteName}</span>
           </div>
           <p className="text-sm text-gray-400">
-            © 2024 {siteName}. 安全 · 私密 · 自主可控
+            © {new Date().getFullYear()} {siteName}. 安全 · 私密 · 自主可控
           </p>
         </div>
       </footer>

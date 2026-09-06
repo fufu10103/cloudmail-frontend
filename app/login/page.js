@@ -191,7 +191,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6 md:mt-8">
-          © 2024 {siteName}. 安全加密 · 隐私保护
+          © {new Date().getFullYear()} {siteName}. 安全加密 · 隐私保护
         </p>
       </div>
     </div>
