@@ -6,7 +6,52 @@ import Link from 'next/link';
 import { CONFIG } from '@/lib/config';
 
 export default function RegisterPage() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!username || !password) {
+      setError('请填写完整信息');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('两次输入的密码不一致');
+      return;
+    }
+    if (password.length < 6) {
+      setError('密码至少6位');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 调用 Pages Functions 后端接口，管理员密码在服务端，前端不可见
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.code === 200) {
+        alert('注册成功！请登录');
+        router.push('/login');
+      } else {
+        setError(data.message || '注册失败');
+      }
+    } catch (err) {
+      setError('网络错误，请重试');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
@@ -18,35 +63,81 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-800">{CONFIG.SITE_NAME}</h1>
-          <p className="text-gray-500 mt-2">注册账号</p>
+          <p className="text-gray-500 mt-2">创建你的专属邮箱账号</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 bg-blue-50 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">暂不开放自助注册</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              本邮箱服务采用邀请制，如需开通账号，请联系管理员获取注册码或由管理员直接为您创建账号。
-            </p>
-            <div className="bg-gray-50 rounded-lg p-4 text-left text-sm text-gray-600 mb-6">
-              <p className="font-medium text-gray-700 mb-2">开通方式：</p>
-              <ul className="space-y-1 list-disc list-inside">
-                <li>联系管理员获取注册码</li>
-                <li>由管理员在后台直接添加账号</li>
-              </ul>
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">注册新账号</h2>
 
-          <div className="flex gap-3">
-            <Link href="/login" className="flex-1 bg-primary-600 text-white py-2.5 rounded-lg font-medium hover:bg-primary-700 transition text-center shadow-md">
-              返回登录
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">邮箱账号</label>
+              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="flex-1 outline-none bg-transparent text-gray-800"
+                  placeholder="输入你想要的账号名"
+                  required
+                  autoComplete="username"
+                />
+                <span className="text-gray-400 text-sm whitespace-nowrap">@{CONFIG.MAIL_DOMAIN}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">设置密码</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
+                placeholder="至少6位字符"
+                required
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">确认密码</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
+                placeholder="再次输入密码"
+                required
+                autoComplete="new-password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary-600 text-white py-2.5 rounded-lg font-medium hover:bg-primary-700 disabled:bg-primary-400 disabled:cursor-not-allowed transition shadow-md hover:shadow-lg"
+            >
+              {loading ? '注册中...' : '立即注册'}
+            </button>
+          </form>
+
+          <p className="text-center mt-6 text-sm text-gray-600">
+            已有账号？
+            <Link href="/login" className="text-primary-600 hover:underline font-medium ml-1">
+              去登录
             </Link>
-          </div>
+          </p>
         </div>
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          注册即表示同意服务条款和隐私政策
+        </p>
       </div>
     </div>
   );

@@ -10,7 +10,8 @@
 - 邮件详情查看
 - 后台管理面板（用户管理、系统设置、数据概览）
 - 响应式设计，移动端友好
-- 纯静态导出，可部署到 Cloudflare Pages / Vercel / Netlify / GitHub Pages
+- 纯静态导出 + Cloudflare Pages Functions（注册接口在服务端，管理员密码不暴露）
+- 可部署到 Cloudflare Pages
 
 ## 技术栈
 
@@ -68,6 +69,16 @@ npm run build
    - **Build command**: `npm run build`
    - **Build output directory**: `out`
 6. 点击 **Save and Deploy**
+7. 部署完成后，进入项目 **Settings** → **Environment variables**，添加以下变量（Production 和 Preview 都要加）：
+
+| 变量名 | 值 | 说明 |
+|--------|-----|------|
+| `ADMIN_EMAIL` | `admin@你的域名` | 管理员邮箱，用于注册时创建用户 |
+| `ADMIN_PASSWORD` | `管理员密码` | 管理员密码（加密存储，前端不可见） |
+| `API_BASE` | `https://www.你的域名` | CloudMail 后端 API 地址（可选，默认已配置） |
+| `MAIL_DOMAIN` | `你的域名` | 邮箱域名（可选，默认已配置） |
+
+8. 添加完环境变量后，重新部署一次（**Deployments** → 最新部署 → **Retry deployment**）使变量生效
 
 ### 方式二：Wrangler CLI 部署
 
