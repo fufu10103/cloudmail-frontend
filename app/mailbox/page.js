@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CONFIG, API_ENDPOINTS } from '@/lib/config';
-import { isLoggedIn, getCurrentUser, logout, authFetch, getAccountId, refreshUserInfo, getUserInfo } from '@/lib/auth';
+import { isLoggedIn, getCurrentUser, logout, authFetch, getAccountId, refreshUserInfo, getUserInfo, isAdmin } from '@/lib/auth';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { getSettings } from '@/lib/settings';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -187,10 +187,12 @@ export default function MailboxPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/admin" className="flex-1 text-xs py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-center transition font-medium">
-              管理后台
-            </Link>
-            <button onClick={handleLogout} className="flex-1 text-xs py-2 border border-red-200 rounded-xl text-red-600 hover:bg-red-50 transition font-medium">
+            {isAdmin() && (
+              <Link href="/admin" className="flex-1 text-xs py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-center transition font-medium">
+                管理后台
+              </Link>
+            )}
+            <button onClick={handleLogout} className={`text-xs py-2 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition font-medium ${isAdmin() ? 'flex-1' : 'w-full'}`}>
               退出登录
             </button>
           </div>
