@@ -5,12 +5,17 @@
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  // 允许跨域（同域部署可省略）
+  // 动态获取请求来源，限制 CORS（同域部署时不需要跨域）
+  const origin = request.headers.get('Origin') || '';
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin || 'same-origin',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Credentials': 'true',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin'
   };
 
   // 处理预检请求
