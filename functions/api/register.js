@@ -20,13 +20,31 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json();
-    const { username, password, domain } = body;
+    const { username, password, domain, turnstileToken } = body;
 
     if (!username || !password) {
       return new Response(JSON.stringify({ code: 400, message: '用户名和密码不能为空' }), { status: 400, headers });
     }
     if (password.length < 6) {
       return new Response(JSON.stringify({ code: 400, message: '密码至少6位' }), { status: 400, headers });
+    }
+
+    // Cloudflare Turnstile 人机验证（配置了 TURNSTILE_SECRET_KEY 时启用）
+    if (env.TURNSTILE_SECRET_KEY) {
+      if (!turnstileToken) {
+        return new Response(JSON.stringify({ code: 400, message: '请完成人机验证' }), { status: 400, headers });
+      }
+      const formData = new FormData();
+      formData.append('secret', env.TURNSTILE_SECRET_KEY);
+      formData.append('response', turnstileToken);
+      const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        method: 'POST',
+        body: formData
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyData.success) {
+        return new Response(JSON.stringify({ code: 400, message: '人机验证失败，请重试' }), { status: 400, headers });
+      }
     }
 
     const API_BASE = env.API_BASE || 'https://www.mailfufu1.qzz.io';
