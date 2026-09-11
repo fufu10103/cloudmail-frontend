@@ -2,11 +2,19 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getSettings } from '@/lib/settings';
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // 安装向导优先级最高：没完成就先去安装
+    const settings = getSettings();
+    if (!settings.setupCompleted) {
+      router.replace('/setup');
+      return;
+    }
+
     // 检查是否已经看过欢迎页
     const welcomeShown = localStorage.getItem('cloudmail_welcome_shown');
     const token = localStorage.getItem('cloudmail_token');

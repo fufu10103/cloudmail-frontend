@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CONFIG } from '@/lib/config';
@@ -10,13 +10,21 @@ import ThemeToggle from '@/components/ThemeToggle';
 
 export default function LoginPage() {
   const settings = getSettings();
+  const router = useRouter();
+
+  // 安装守卫：没完成安装跳安装向导
+  useEffect(() => {
+    if (!settings.setupCompleted) {
+      router.replace('/setup');
+    }
+  }, []);
+
   const [username, setUsername] = useState('');
   const [domain, setDomain] = useState(settings.mailDomains[0] || CONFIG.MAIL_DOMAIN);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
 
   const mailDomains = settings.mailDomains || CONFIG.MAIL_DOMAINS;
   const siteName = settings.siteName || CONFIG.SITE_NAME;
