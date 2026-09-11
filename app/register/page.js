@@ -59,13 +59,13 @@ export default function RegisterPage() {
       return;
     }
 
-    if (username.length < 3) {
-      setError('用户名至少3个字符');
+    if (!/^[a-zA-Z0-9._-]{2,30}$/.test(username)) {
+      setError('用户名仅支持 2-30 位字母、数字、点、下划线或连字符');
       return;
     }
 
-    if (password.length < 6) {
-      setError('密码至少6个字符');
+    if (password.length < 6 || password.length > 64) {
+      setError('密码长度需为 6-64 个字符');
       return;
     }
 
@@ -95,7 +95,7 @@ export default function RegisterPage() {
 
       const result = await response.json();
 
-      if (result.success) {
+      if (result.code === 200) {
         setSuccess('注册成功！正在跳转到登录页...');
         setTimeout(() => router.push('/login'), 2000);
       } else {
