@@ -9,8 +9,8 @@ import { getSettings } from '@/lib/settings';
 import { formatFileSize } from '@/lib/email';
 import ThemeToggle from '@/components/ThemeToggle';
 
-// 单个附件大小上限 25MB，数量上限 10（与后端一致）
-const MAX_FILE_SIZE = 25 * 1024 * 1024;
+// 单个附件大小上限 100MB（Cloudflare Workers 请求体上限），数量上限 10
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 const MAX_FILE_COUNT = 10;
 
 function ComposeForm() {
@@ -86,8 +86,13 @@ function ComposeForm() {
   };
 
   // ============ 附件处理 ============
-  const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
+  const readFileAsBase64 = (file, onProgress) => new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onprogress = (ev) => {
+      if (onProgress && ev.lengthComputable) {
+        onProgress(Math.round((ev.loaded / ev.total) * 100));
+      }
+    };
     reader.onload = () => {
       const result = reader.result || '';
       const base64 = String(result).split(',')[1] || '';
@@ -106,18 +111,32 @@ function ComposeForm() {
     }
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE) {
-        setError(`文件「${file.name}」超过 25MB 上限`);
+        setError(`文件「${file.name}」超过 100MB 上限（当前 ${formatFileSize(file.size)}）`);
         continue;
       }
+      // 先占位，带进度
+      const placeholder = {
+        filename: file.name.slice(0, 200),
+        content: '',
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        progress: 0,
+        reading: true
+      };
+      setAttachments(prev => [...prev, placeholder]);
       try {
-        const base64 = await readFileAsBase64(file);
-        setAttachments(prev => [...prev, {
-          filename: file.name.slice(0, 200),
-          content: base64,
-          type: file.type || 'application/octet-stream',
-          size: file.size
-        }]);
+        const base64 = await readFileAsBase64(file, (pct) => {
+          setAttachments(prev => prev.map(a =>
+            a.filename === placeholder.filename && a.size === placeholder.size
+              ? { ...a, progress: pct } : a
+          ));
+        });
+        setAttachments(prev => prev.map(a =>
+          a.filename === placeholder.filename && a.size === placeholder.size
+            ? { ...a, content: base64, progress: 100, reading: false } : a
+        ));
       } catch (e) {
+        setAttachments(prev => prev.filter(a => a !== placeholder));
         setError(`文件「${file.name}」读取失败`);
       }
     }
@@ -303,7 +322,16 @@ function ComposeForm() {
                     </svg>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-700 dark:text-gray-200 truncate">{att.filename}</p>
-                      <p className="text-xs text-gray-400">{formatFileSize(att.size)}</p>
+                      {att.reading ? (
+                        <div className="mt-1">
+                          <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 transition-all duration-200" style={{ width: `${att.progress || 0}%` }}></div>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{att.progress || 0}% · {formatFileSize(att.size)}</p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400">{formatFileSize(att.size)}</p>
+                      )}
                     </div>
                     <button type="button" onClick={() => removeAttachment(idx)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,7 +353,7 @@ function ComposeForm() {
                   className="hidden"
                   onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
                 />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-500 dark:text-gray-400 transition flex items-center gap-1.5" title="添加附件（最多10个，单个25MB）">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-500 dark:text-gray-400 transition flex items-center gap-1.5" title="添加附件（最多10个，单个100MB）">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
@@ -362,7 +390,7 @@ function ComposeForm() {
         </div>
 
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
-          邮件通过 {siteName} 安全加密发送 · 附件单个最大 25MB
+          邮件通过 {siteName} 安全加密发送 · 附件单个最大 100MB（最多10个）
         </p>
       </div>
     </div>
