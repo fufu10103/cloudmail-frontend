@@ -12,6 +12,7 @@
 - [Cloudflare Turnstile 人机验证](#cloudflare-turnstile-人机验证)
 - [PWA 安装到手机桌面](#pwa-安装到手机桌面)
 - [本地开发](#本地开发)
+- [Docker 部署](#docker-部署)
 - [常见问题](#常见问题)
 
 ---
@@ -409,6 +410,49 @@ npm run build
 - **后端**: Cloudflare Pages Functions
 - **部署**: Cloudflare Pages
 - **安全**: XSS 消毒、CORS 限制、安全响应头、Turnstile 人机验证
+
+---
+
+## Docker 部署
+
+除了 Cloudflare Pages，你也可以用 Docker 部署到自己的服务器。
+
+### 方式一：docker-compose（推荐）
+
+```bash
+# 克隆仓库
+git clone https://github.com/fufu10103/cloudmail-frontend.git
+cd cloudmail-frontend
+
+# 一键启动
+docker-compose up -d
+```
+
+启动后访问 `http://你的服务器IP:8080` 即可。
+
+### 方式二：手动 docker build
+
+```bash
+# 构建镜像
+docker build -t cloudmail-frontend .
+
+# 运行容器
+docker run -d -p 8080:80 --name cloudmail-frontend --restart unless-stopped cloudmail-frontend
+```
+
+### 配置说明
+
+- **端口**：默认映射到 `8080`，可在 `docker-compose.yml` 里改成你想要的端口
+- **HTTPS**：要配 HTTPS 的话，取消 `docker-compose.yml` 里 volumes 注释，把证书挂进去，然后改 `docker/nginx.conf`
+- **后端地址**：Docker 部署后，第一次打开会走安装向导，填你的后端 API 地址即可
+
+### 更新
+
+```bash
+cd cloudmail-frontend
+git pull
+docker-compose up -d --build
+```
 
 ---
 
