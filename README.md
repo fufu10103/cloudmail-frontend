@@ -13,6 +13,8 @@
 docker run -d -p 8080:80 ghcr.io/fufu10103/cloudmail-frontend:latest
 ```
 
+**GitHub Pages**：仓库已内置 GitHub Actions，push 到 master 后自动部署到 GitHub Pages。只需要在仓库 Settings → Pages 里把 Source 设为 "GitHub Actions"。
+
 ## 功能特性
 
 - 用户注册 / 登录 / 登出
