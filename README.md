@@ -1,6 +1,17 @@
 # CloudMail 前端
 
-一个基于 Next.js + Tailwind CSS 的邮箱系统前端，对接 CloudMail 后端 API，支持用户注册、登录、收发邮件和后台管理，可一键部署到 Cloudflare Pages。
+一个基于 Next.js + Tailwind CSS 的邮箱系统前端，对接 CloudMail 后端 API，支持用户注册、登录、收发邮件和后台管理。
+
+## 一键部署
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/fufu10103/cloudmail-frontend)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/sites/new?repository_url=https://github.com/fufu10103/cloudmail-frontend)
+[![Deploy to Cloudflare Pages](https://img.shields.io/badge/Deploy%20to-Cloudflare%20Pages-F38020?logo=cloudflare&logoColor=white)](https://dash.cloudflare.com/?to=/:account/pages/new/upload)
+
+也可以用 Docker：
+```bash
+docker run -d -p 8080:80 ghcr.io/fufu10103/cloudmail-frontend:latest
+```
 
 ## 功能特性
 
