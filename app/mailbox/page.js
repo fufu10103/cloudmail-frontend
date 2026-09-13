@@ -9,6 +9,22 @@ import { getSettings } from '@/lib/settings';
 import { formatDate, formatFileSize, extractVerifyCode, markEmailsRead, toggleStar, deleteEmails, renderEmailContent, getAttUrl } from '@/lib/email';
 import ThemeToggle from '@/components/ThemeToggle';
 
+// 根据邮箱字符串生成稳定的头像背景色
+function avatarColor(str) {
+  const palette = [
+    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+    'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+    'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+    'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  return palette[hash % palette.length];
+}
+
 export default function MailboxPage() {
   const router = useRouter();
   const settings = getSettings();
@@ -305,6 +321,14 @@ export default function MailboxPage() {
   });
 
   const unreadCount = emails.filter(e => e.unread === 0).length;
+
+  // 浏览器标签页标题显示未读数
+  useEffect(() => {
+    const base = siteName || 'CloudMail';
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${base}` : base;
+    return () => { document.title = base; };
+  }, [unreadCount, siteName]);
+
   const tabs = [
     { id: 'inbox', name: '收件箱', icon: 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4', count: unreadCount },
     { id: 'sent', name: '已发送', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8', count: 0 },
@@ -530,6 +554,10 @@ export default function MailboxPage() {
                         onClick={(e) => e.stopPropagation()}
                         className="mt-1 flex-shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
+                      {/* 发件人首字母头像 */}
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 mt-0.5 ${avatarColor((activeTab === 'sent' ? email.toEmail : email.sendEmail) || '?')}`}>
+                        {(activeTab === 'sent' ? email.toEmail : email.sendEmail)?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1.5 gap-2">
                           <div className="flex items-center gap-1.5 min-w-0">
