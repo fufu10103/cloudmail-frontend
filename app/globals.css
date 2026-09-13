@@ -18,6 +18,12 @@ body {
   min-height: 100vh;
 }
 
+.dark body {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 3, 7, 18;
+  --background-end-rgb: 15, 23, 42;
+}
+
 /* 自定义滚动条 */
 ::-webkit-scrollbar {
   width: 6px;
@@ -32,6 +38,25 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* 选中文本颜色 */
+::selection {
+  background: rgba(59, 130, 246, 0.2);
+}
+.dark ::selection {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* 移动端 tap 高亮去掉 */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 动画 */

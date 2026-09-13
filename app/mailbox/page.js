@@ -475,18 +475,38 @@ export default function MailboxPage() {
           {/* 邮件列表 */}
           <div ref={listRef} className={`${selectedEmail ? 'hidden md:block w-96 border-r border-gray-100 dark:border-gray-800' : 'w-full'} bg-white dark:bg-gray-900 overflow-y-auto`}>
             {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              /* 骨架屏 */
+              <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="px-4 py-3.5 animate-pulse">
+                    <div className="flex gap-3">
+                      <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded mt-1 flex-shrink-0"></div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12"></div>
+                        </div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-1.5"></div>
+                        <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : filteredEmails.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-gray-500 px-4">
-                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-10 h-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex flex-col items-center justify-center h-full min-h-64 text-gray-400 dark:text-gray-500 px-4 py-12">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-10 h-10 text-blue-300 dark:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium">暂无邮件</p>
-                <p className="text-xs text-gray-400 mt-1">{searchQuery ? '没有找到匹配的邮件' : '新邮件会出现在这里'}</p>
+                <p className="text-base font-medium text-gray-600 dark:text-gray-300 mb-1">{searchQuery ? '没有找到匹配的邮件' : '暂无邮件'}</p>
+                <p className="text-xs text-gray-400 mb-5">{searchQuery ? '换个关键词试试' : '新邮件会出现在这里'}</p>
+                {!searchQuery && (
+                  <Link href="/compose" className="px-4 py-2 bg-blue-600 text-white text-sm rounded-full hover:bg-blue-700 transition shadow-sm">
+                    写一封新邮件 →
+                  </Link>
+                )}
               </div>
             ) : (
               <>
