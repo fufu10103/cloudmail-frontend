@@ -6,6 +6,17 @@
 const USERNAME_RE = /^[a-zA-Z0-9._-]{2,30}$/;
 const MAX_PASSWORD_LEN = 64;
 
+// 保留用户名：禁止抢注管理员/系统地址。
+// 前端 lib/config.js 里的 ADMIN_EMAILS 是硬编码白名单，若不过滤，任何人都能
+// 往本接口提交 {"username":"admin"} 领取 admin@<域名>，从而在前端自认管理员。
+const RESERVED_USERNAMES = new Set([
+  'admin', 'administrator', 'root', 'sysadmin', 'system', 'superadmin',
+  'postmaster', 'abuse', 'webmaster', 'hostmaster', 'support', 'help',
+  'noreply', 'no-reply', 'donotreply', 'mailer-daemon', 'notify', 'notification',
+  'user', 'users', 'all', 'api', 'mail', 'cloudmail', 'test', 'demo',
+  'fufu', '111111', '123456', '000000'
+]);
+
 // 构造 CORS 头：仅允许同源或显式白名单来源，且不反射凭证
 function buildCorsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
@@ -46,6 +57,19 @@ export async function onRequestPost(context) {
     if (!USERNAME_RE.test(String(username))) {
       return new Response(JSON.stringify({ code: 400, message: '用户名仅支持 2-30 位字母、数字、点、下划线或连字符' }), { status: 400, headers });
     }
+
+    // 保留名 + 管理员账号本地部分一律拒绝（大小写不敏感，并忽略点号变体 f.u.fu == fufu）
+    const normalized = String(username).toLowerCase();
+    const adminLocalPart = String(env.ADMIN_EMAIL || '').split('@')[0].toLowerCase();
+    const isReserved = (value) => {
+      const stripped = value.replace(/\./g, '');
+      const matchesAdmin = adminLocalPart !== '' && stripped === adminLocalPart;
+      return RESERVED_USERNAMES.has(value) || RESERVED_USERNAMES.has(stripped) || matchesAdmin;
+    };
+    if (isReserved(normalized) || isReserved(normalized.replace(/\./g, ''))) {
+      return new Response(JSON.stringify({ code: 400, message: '该用户名不可注册' }), { status: 400, headers });
+    }
+
     if (password.length < 6 || password.length > MAX_PASSWORD_LEN) {
       return new Response(JSON.stringify({ code: 400, message: `密码长度需为 6-${MAX_PASSWORD_LEN} 位` }), { status: 400, headers });
     }

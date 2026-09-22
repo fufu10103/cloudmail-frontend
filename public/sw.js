@@ -27,6 +27,7 @@ function isStaticAsset(url) {
   return url.origin === self.location.origin &&
     (url.pathname.startsWith('/_next/static/') ||
       url.pathname.startsWith('/icon') ||
+      url.pathname === '/theme.js' ||
       url.pathname.endsWith('.svg') ||
       url.pathname.endsWith('.css') ||
       url.pathname.endsWith('.woff2'));

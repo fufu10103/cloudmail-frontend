@@ -20,20 +20,8 @@ export const metadata = {
   }
 };
 
-// 主题初始化脚本 - 在页面渲染前执行，避免闪烁
-const themeInitScript = `
-(function() {
-  try {
-    var theme = localStorage.getItem('cloudmail_theme');
-    if (!theme) {
-      theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    }
-  } catch(e) {}
-})();
-`;
+// 主题初始化脚本已移到 public/theme.js（head 中同步加载，避免闪烁）。
+// 改成外部文件是为了让 CSP 的 script-src 只需 'self'，不必放开 'unsafe-inline'。
 
 export const viewport = {
   themeColor: '#4f46e5',
@@ -47,7 +35,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script src="/theme.js"></script>
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" href="/icon.svg" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

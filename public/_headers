@@ -1,0 +1,15 @@
+# Cloudflare Pages 响应头（放在 public/ 下，构建时会随 out/ 一起发布）
+# 注意：netlify.toml 只对 Netlify 生效，Cloudflare Pages 读的是本文件。
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+# 下面是“只观察不拦截”的 CSP：在 DevTools 控制台确认没有误伤 Next.js 运行脚本、
+# 以及邮件正文的 srcdoc iframe 之后，把 Report-Only 这一行改名成 Content-Security-Policy 即可强制生效。
+# style-src 需要 'unsafe-inline'（React 行内 style 属性）；frame-src 用 'self' 以保留 srcdoc iframe。
+# connect-src 放宽到 https: 是因为「后台设置」_ALLOWED_ORIGINS 允许自定义后端地址；
+# 如果你的部署固定了后端域名，请把它写死，例如 connect-src 'self' https://www.example.com。
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https:; manifest-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'

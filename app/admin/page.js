@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { makeEndpoints } from '@/lib/config';
-import { isLoggedIn, getCurrentUser, logout, authFetch, isAdmin } from '@/lib/auth';
+import { isLoggedIn, getCurrentUser, logout, authFetch, verifyAdmin } from '@/lib/auth';
 import { getSettings, saveSettings, resetSettings, applySettings } from '@/lib/settings';
-import { formatDate, renderEmailContent } from '@/lib/email';
+import { formatDate } from '@/lib/email';
+import EmailFrame from '@/components/EmailFrame';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export default function AdminPage() {
@@ -33,8 +34,14 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return; }
-    if (!isAdmin()) { router.push('/mailbox'); return; }
-    fetchData();
+    // 管理面板以「后端返回的登录用户信息」为准；本地缓存只当导航提示，
+    // localStorage 任何人都能改，所以这里必须回源校验一次。
+    verifyAdmin()
+      .then((ok) => {
+        if (!ok) { router.push('/mailbox'); return; }
+        fetchData();
+      })
+      .catch(() => router.push('/mailbox'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -476,7 +483,7 @@ export default function AdminPage() {
                           <p>所属用户：{viewMail.userEmail}</p>
                           <p>{viewMail.type === 1 ? `收件人：${viewMail.toEmail}` : `发件人：${viewMail.sendEmail || viewMail.name}`} · {viewMail.createTime}</p>
                         </div>
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 border-t border-gray-100 dark:border-gray-800 pt-4 break-words" dangerouslySetInnerHTML={{ __html: renderEmailContent(viewMail.content || `<p>${viewMail.text || ''}</p>`, settings.apiBase) }} />
+                        <EmailFrame content={viewMail.content} text={viewMail.text} apiBase={settings.apiBase} />
                         <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
                           <button onClick={() => handleDeleteMail(viewMail.emailId)} className="px-4 py-2 text-sm border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20">永久删除</button>
                         </div>

@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { CONFIG, makeEndpoints } from '@/lib/config';
 import { isLoggedIn, getCurrentUser, logout, authFetch, getAccountId, refreshUserInfo, getUserInfo, isAdmin } from '@/lib/auth';
 import { getSettings } from '@/lib/settings';
-import { formatDate, formatFileSize, extractVerifyCode, markEmailsRead, toggleStar, deleteEmails, renderEmailContent, getAttUrl } from '@/lib/email';
+import { formatDate, formatFileSize, extractVerifyCode, markEmailsRead, toggleStar, deleteEmails, getAttUrl } from '@/lib/email';
+import EmailFrame from '@/components/EmailFrame';
 import ThemeToggle from '@/components/ThemeToggle';
 
 // 根据邮箱字符串生成稳定的头像背景色
@@ -677,11 +678,11 @@ export default function MailboxPage() {
                   )}
                 </div>
 
-                {/* 邮件正文 */}
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed break-words"
-                  style={{ fontSize: '15px', lineHeight: '1.8' }}
-                  dangerouslySetInnerHTML={{ __html: renderEmailContent(selectedEmail.content || selectedEmail.text ? (selectedEmail.content || `<p>${selectedEmail.text}</p>`) : '', settings.apiBase) }}
+                {/* 邮件正文：沙箱 iframe 渲染，禁用脚本与同源权限 */}
+                <EmailFrame
+                  content={selectedEmail.content}
+                  text={selectedEmail.text}
+                  apiBase={settings.apiBase}
                 />
 
                 {/* 附件 */}
